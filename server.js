@@ -35,7 +35,7 @@ const addDept = () => {
         ])
         .then((answers) => db.promise().query(`INSERT INTO department(dept_name)VALUES('${answers.department}');`)
         .then(([deptData]) => {
-            console.log("Success the Department was added!!")
+            console.log("Success the department was added!!")
             console.table(deptData)
         }
         ));
@@ -62,7 +62,7 @@ const addRole = () => {
         ])
         .then((answers) => db.promise().query(`INSERT INTO employee(title, salary, department_id)VALUES('${answers.title}', '${answers.salary}', ${answers.deptID});`)
         .then(([roleData]) => {
-            console.log("Success the Employee was added!!")
+            console.log("Success the new role was added!!")
             console.table(roleData)
         }
         ));
@@ -94,8 +94,33 @@ const addEmployee = () => {
         ])
         .then((answers) => db.promise().query(`INSERT INTO employee(first_name, last_name, role_id, manager_id)VALUES('${answers.firstName}', '${answers.lastName}', ${answers.roleID}, ${managerID});`)
         .then(([empData]) => {
-            console.log("Success the Employee was added!!")
+            console.log("Success the employee was added!!")
             console.table(empData)
+        }
+        ));
+
+};
+const updateRole = () => {
+    inquirer
+        .prompt([
+            {
+                type: "list",
+                name: "employee",
+                message: "Which employee would you like to update?",
+                choices: //["what is the name of this new department?"]
+            },
+            {
+                type: "list",
+                name: "reassignment",
+                message: "Which Role would you like to reassign this employee to?",
+                choices: 
+
+            }
+        ])
+        .then((answers) => db.promise().query(`INSERT INTO department(dept_name)VALUES('${answers.department}');`)
+        .then(([deptData]) => {
+            console.log("Success the department was added!!")
+            console.table(deptData)
         }
         ));
 
@@ -143,7 +168,7 @@ const startPrompt = () => {
                                     addEmployee();
                                 } else
                                     if (answer.start === "Update an employee role") {
-                                        //function
+                                        updateRole();
                                     } else {
                                         return;
                                     }
