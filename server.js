@@ -16,13 +16,22 @@ const db = mysql.createConnection(
 );
 
 const viewDepts = () => {
-    db.promise().query("SELECT * FROM department").then(([deptData]) => console.table(deptData));
+    db.promise().query("SELECT * FROM department").then(([deptData]) => {
+        console.table(deptData);
+        startPrompt();
+    });
 };
 const viewRoles = () => {
-    db.promise().query("SELECT * FROM role").then(([roleData]) => console.table(roleData));
+    db.promise().query("SELECT * FROM role").then(([roleData]) => {
+        console.table(roleData);
+        startPrompt();
+    });
 };
 const viewEmployees = () => {
-    db.promise().query("SELECT * FROM employee").then(([empData]) => console.table(empData));
+    db.promise().query("SELECT * FROM employee").then(([empData]) => {
+        console.table(empData);
+        startPrompt();
+    });
 };
 const addDept = () => {
     inquirer
@@ -34,14 +43,25 @@ const addDept = () => {
             }
         ])
         .then((answers) => db.promise().query(`INSERT INTO department(dept_name)VALUES('${answers.department}');`)
-        .then(([deptData]) => {
-            console.log("Success the department was added!!")
-            console.table(deptData)
-        }
-        ));
+            .then(([deptData]) => {
+                if (deptData.affectedRows > 0) {
+                    viewDepts();
+                } else {
+                    console.info("Employee creation failed, please try again");
+                    startPrompt();
+                }
+            }
+            ));
 
 };
-const addRole = () => {
+const addRole = async () => {
+    let [departments] = await db.promise().query("SELECT * FROM department");
+    let deptArr = departments.map(({ dept_name, id }) => (
+        {
+            name: dept_name,
+            value: id
+        }
+    ))
     inquirer
         .prompt([
             {
@@ -55,20 +75,40 @@ const addRole = () => {
                 message: "How much does this role make?"
             },
             {
-                type: "input",
+                type: "list",
                 name: "deptID",
-                message: "What department is this role assigned to?"
+                message: "What department is this role assigned to?",
+                choices: deptArr
             }
         ])
-        .then((answers) => db.promise().query(`INSERT INTO employee(title, salary, department_id)VALUES('${answers.title}', '${answers.salary}', ${answers.deptID});`)
-        .then(([roleData]) => {
-            console.log("Success the new role was added!!")
-            console.table(roleData)
-        }
-        ));
+        .then((answers) => db.promise().query(`INSERT INTO role(title, salary, department_id)VALUES('${answers.title}', '${answers.salary}', ${answers.deptID});`)
+            .then(([roleData]) => {
+                if (roleData.affectedRows > 0) {
+                    viewRoles();
+                } else {
+                    console.info("Role creation failed, please try again");
+                    startPrompt();
+                }
+            }
+            ));
 
 };
-const addEmployee = () => {
+const addEmployee = async () => {
+    // establish who the managers list is going to be
+    let [employees] = await db.promise().query("SELECT * FROM employee");
+    let managerArr = employees.map(({ first_name, last_name, id }) => (
+        {
+            name: first_name + " " + last_name,
+            value: id
+        }
+    ));
+    let [roles] = await db.promise().query("SELECT * FROM role");
+    let roleArr = roles.map(({ title, id }) => (
+        {
+            name: title,
+            value: id
+        }
+    ))
     inquirer
         .prompt([
             {
@@ -82,49 +122,81 @@ const addEmployee = () => {
                 message: "What is this employee's last name?"
             },
             {
-                type: "input",
+                type: "list",
                 name: "roleID",
-                message: "What is this employees role?"
+                message: "Select this employee's role?",
+                choices: roleArr
             },
             {
-                type: "input",
+                type: "list",
                 name: "managerID",
-                message: "Who is this employee's supervisor?"
+                message: "Who is this employee's supervisor?",
+                choices: managerArr
             }
         ])
-        .then((answers) => db.promise().query(`INSERT INTO employee(first_name, last_name, role_id, manager_id)VALUES('${answers.firstName}', '${answers.lastName}', ${answers.roleID}, ${managerID});`)
-        .then(([empData]) => {
-            console.log("Success the employee was added!!")
-            console.table(empData)
-        }
-        ));
+        .then((answers) => db.promise().query(`INSERT INTO employee(first_name, last_name, role_id, manager_id)VALUES('${answers.firstName}', '${answers.lastName}', ${answers.roleID}, ${answers.managerID});`)
+            .then(([empData]) => {
+                if (empData.affectedRows > 0) {
+                    viewEmployees();
+                } else {
+                    console.info("Employee creation failed, please try again");
+                    startPrompt();
+                }
+            }
+            ));
 
 };
-const updateRole = () => {
+const updateRole = async () => {
+    // establish employee list
+    let [employees] = await db.promise().query("SELECT * FROM employee");
+    let employeeArr = employees.map(({ first_name, last_name, id }) => (
+        {
+            name: first_name + " " + last_name,
+            value: id
+        }
+    ));
+    // establish role list
+    let [roles] = await db.promise().query("SELECT * FROM role");
+    let roleArr = roles.map(({ title, id }) => (
+        {
+            name: title,
+            value: id
+        }
+    ))
     inquirer
         .prompt([
             {
                 type: "list",
                 name: "employee",
                 message: "Which employee would you like to update?",
-                choices: //["what is the name of this new department?"]
+                choices: employeeArr
             },
             {
                 type: "list",
                 name: "reassignment",
                 message: "Which Role would you like to reassign this employee to?",
-                choices: 
+                choices: roleArr
 
             }
         ])
-        .then((answers) => db.promise().query(`INSERT INTO department(dept_name)VALUES('${answers.department}');`)
-        .then(([deptData]) => {
-            console.log("Success the department was added!!")
-            console.table(deptData)
-        }
-        ));
+        .then(answers => {
+            let employeeObj = {
+                role_id: answers.reassignment,
+            }
+            db.promise().query("UPDATE employee SET ? WHERE employee.id=?", [employeeObj, answers.employee]).then(([empData]) => {
+                if (empData.affectedRows > 0) {
+                    viewEmployees();
+                } else {
+                    console.info("Employee creation failed, please try again");
+                    startPrompt();
+                }
+            })
+
+        })
 
 };
+
+
 // write inquirer prompts 
 // options: view all dep, view all roles, view all emp, add a department, add a role
 // add an employee, update an employee role
@@ -136,24 +208,21 @@ const startPrompt = () => {
                 type: "list",
                 name: "start",
                 message: "What would you like to do?",
-                choices: ["View all departments", "View all roles", "View all employees", "Add a department", "Add a role", "Add an employee", "Update an employee role", "Quit"]
+                choices: ["View all departments", "Add a department", "View all roles", "Add a role", "View all employees", "Add an employee", "Update an employee role", "Quit"]
             }
         ])
         .then((answer) => {
             if (answer.start === "View all departments") {
                 viewDepts();
-                return;
                 //function for view all departments
             } else
                 if (answer.start === "View all roles") {
                     //function for viewing all roles
                     viewRoles();
-                    return;
                 } else
                     if (answer.start === "View all employees") {
                         //function to view all employees
                         viewEmployees();
-                        return;
                     } else
                         if (answer.start === "Add a department") {
                             //function to add a dept
@@ -170,7 +239,7 @@ const startPrompt = () => {
                                     if (answer.start === "Update an employee role") {
                                         updateRole();
                                     } else {
-                                        return;
+                                        process.exit();
                                     }
         });
 
