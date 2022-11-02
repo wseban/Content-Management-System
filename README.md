@@ -35,7 +35,6 @@ The most effective lessons learned for me were...
 JavaScript
 ```javaScript
 const addEmployee = async () => {
-    // establish who the managers list is going to be
     let [employees] = await db.promise().query("SELECT * FROM employee");
     let managerArr = employees.map(({ first_name, last_name, id }) => (
         {
