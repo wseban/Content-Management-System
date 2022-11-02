@@ -22,13 +22,13 @@ const viewDepts = () => {
     });
 };
 const viewRoles = () => {
-    db.promise().query("SELECT * FROM role").then(([roleData]) => {
+    db.promise().query("SELECT * FROM role LEFT JOIN department ON role.department_id = department.id;").then(([roleData]) => {
         console.table(roleData);
         startPrompt();
     });
 };
 const viewEmployees = () => {
-    db.promise().query("SELECT * FROM employee").then(([empData]) => {
+    db.promise().query("SELECT * FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id;").then(([empData]) => {
         console.table(empData);
         startPrompt();
     });
